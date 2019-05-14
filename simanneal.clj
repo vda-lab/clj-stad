@@ -38,7 +38,7 @@
 (defn make-random-factor-seq
   "produce a linear drop in jump distance"
   [rfmin rfmax steps]
-  (map first (partition (int (/ (- rfmax rfmin) steps)) (range rfmin rfmax))))
+  (reverse (map first (partition (int (/ (- rfmax rfmin) steps)) (range rfmin rfmax)))))
 
 (defn nr-edges-to-add-remove-fn
   "Pick the number of edges to add or remove. Range to pick from is defined by random-factor"
@@ -49,14 +49,21 @@
       (* -1 jump))))
 
 (defn proposed-nr-edges-fn
-  "Hardcoded 0 and 10,000 as min and max nr of edges in total"
-  [prev-nr-edges nr-edges-to-add-remove-fn]
-  (let [proposed-nr-edges (+ prev-nr-edges nr-edges-to-add-remove-fn)]
-    (if (< proposed-nr-edges 0)
-      0
-      (if (> proposed-nr-edges 10000)
-        10000
-        proposed-nr-edges))))
+  "Proposes number of edges.
+   When <0 or > 10000: 'mirrors' back: divides by 2 and goes inward"
+  [prev-nr-edges rf]
+  (let [nr-edges-to-add-remove-fn (nr-edges-to-add-remove-fn rf)
+        proposed-nr-edges (+ prev-nr-edges nr-edges-to-add-remove-fn)]
+    (cond
+      (< proposed-nr-edges 0)     (* -1 (/ proposed-nr-edges 2))
+      (> proposed-nr-edges 10000) (- 10000 (/ proposed-nr-edges 2))
+      :else proposed-nr-edges)))
+    ;   )
+    ; (if (< proposed-nr-edges 0)
+    ;   0
+    ;   (if (> proposed-nr-edges 10000)
+    ;     10000
+    ;     proposed-nr-edges))))
 
 
 (defn proposed-graph-fn
@@ -109,13 +116,18 @@
             prev-score (stad-score hiD-dist-matrix prev-graph-distance-matrix)
             dE (- proposed-score prev-score)]
 
-        (pr/print (pr/tick bar))
+        (pr/print bar)
+        (pr/tick bar)
         ; (stad/printfv "run-sa: iteration %d%n" step)
         (swap! history-x conj proposed-nr-edges)
         (swap! history-y conj proposed-score)
         (if (or
-             (< dE 0)
-             (> (Math/exp (/ (* -1 dE) temp)) (rand)))
+              (> proposed-score prev-score)
+              (> (Math/exp (/ (* -1 dE) temp)) (rand)))
+             ; (> dE 0)
+             ; (> (Math/exp (/ dE temp)) (rand)))
+             ; (< dE 0)
+             ; (> (Math/exp (/ (* -1 dE) temp)) (rand)))
           (reset! state proposed-graph)
           (reset! nr-edges proposed-nr-edges))))
     (pr/print (pr/done bar))
