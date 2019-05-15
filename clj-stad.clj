@@ -39,6 +39,8 @@
                  (csv-data->maps (csv/read-csv reader)))))
 (def data
   (->> raw-data
+       (shuffle)
+       (take 174)
        (map #(assoc % :x (Integer/parseInt (:x %))))
        (map #(assoc % :y (Integer/parseInt (:y %))))
        (map #(assoc % :hue (Integer/parseInt (:hue %))))
@@ -276,14 +278,15 @@
 ;        (add-multiple-edges mst)))
 ;
 ; (proto-repl-charts.graph/graph
-;   "New graph"z
+;   "New graph"
 ;   new-graph)
 
 ;;;;;;;;;;;;;;;;;
 ;; Run simulated annealing
 ;;;;;;;;;;;;;;;;;
-(def nr-iterations 30)
-(def temperature-seq (simanneal.anneal/make-temperature-seq 1.5 0.1 nr-iterations))
+(def nr-iterations 50)
+(def temperature-seq (simanneal.anneal/make-temperature-seq 1 0.01 nr-iterations))
+; (def temperature-seq (simanneal.anneal/make-temperature-seq 1.5 0.1 nr-iterations))
 (def random-factor-seq (simanneal.anneal/make-random-factor-seq 0 10000 nr-iterations))
 
 
@@ -295,3 +298,27 @@
           mst
           temperature-seq
           random-factor-seq))
+
+(proto-repl-charts.charts/custom-chart
+   "Evolution of objective function value"
+   {:data {:x "x"
+           :columns [(flatten ["x" (nth result 2)])
+                     (flatten ["y" (nth result 3)])]
+           :type "scatter"}})
+
+(proto-repl-charts.charts/line-chart
+  "history-x"
+  {"x" (nth result 2)})
+
+(proto-repl-charts.charts/line-chart
+  "history-y"
+  {"y" (nth result 3)})
+
+(def new-graph
+  (->> sorted-non-mst-edges-with-weight
+       (take (second result))
+       (add-multiple-edges mst)))
+
+(proto-repl-charts.graph/graph
+  "New graph"
+  new-graph)
