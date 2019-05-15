@@ -1,5 +1,5 @@
-(defproject gorilla-test "0.1.0-SNAPSHOT"
-  :description "A test project for Gorilla REPL."
+(defproject stad "0.1.0"
+  :description "Simplified Topological Approximation of Data"
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojure/data.csv "0.1.4"]
                  [net.mikera/core.matrix "0.62.0"]
