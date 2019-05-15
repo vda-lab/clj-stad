@@ -1,19 +1,13 @@
-(ns stad
+(ns clj-stad.core
   (:require [clojure.data.csv :as csv]
-            [clojure.tools.logging :as log]
+;            [clojure.tools.logging :as log]
             [clojure.java.io :as io]
             [clojure.set :as set]
             [clojure.core.matrix :as cm]
-;            [gorilla-plot.core :as gc]
             [incanter.core :as ico]
-;            [incanter.charts :as ich]
             [loom.graph :as lg]
             [loom.alg :as la]
-;            [loom.io :as li]
             [clojure.math.numeric-tower :as math]
-;              [ubergraph.core :as uc]
-;              [ubergraph.alg :as ua]
-;            [kixi.stats.core :as kc]
             [incanter.stats :as is]))
 (use 'prc)
 

@@ -2,20 +2,7 @@
   (:require [clojure.core.async :as async]
             [clojure.core.reducers :as r]
             [loom.graph :as lg]
-            [incanter.stats :as is]
-            [progrock.core :as pr]))
-
-; (defn switch-elements
-;   "Switch 2 elements in a vector by index"
-;   [v i1 i2]
-;   (assoc v i2 (v i1) i1 (v i2)))
-
-; (defn move
-;   "Return a new state with a small modification"
-;   [state]
-;   (let [idx1 (rand-int (count state))
-;         idx2 (rand-int (count state))]
-;     (switch-elements state idx1 idx2)))
+            [incanter.stats :as is]))
 
 (defn add-multiple-edges
   "Add edges to graph"
@@ -105,7 +92,7 @@
    random-factor-seq]
 
   (let [state (atom mst)
-        state-matrix (atom (stad/graph-distance-matrix mst))
+        state-matrix (atom (clj-stad.core/graph-distance-matrix mst))
         state-score (atom (stad-score hiD-dist-matrix @state-matrix))
         nr-edges (atom 0)
         history-x (atom [])
@@ -115,13 +102,13 @@
             rf (nth random-factor-seq step)
             proposed-nr-edges (proposed-nr-edges-fn @nr-edges rf)
             proposed-graph (proposed-graph-fn mst proposed-nr-edges sorted-non-mst-edges-with-weight)
-            proposed-graph-distance-matrix (stad/graph-distance-matrix proposed-graph)
+            proposed-graph-distance-matrix (clj-stad.core/graph-distance-matrix proposed-graph)
             proposed-score (stad-score hiD-dist-matrix proposed-graph-distance-matrix)
-            ; prev-graph-distance-matrix (stad/graph-distance-matrix @state)
+            ; prev-graph-distance-matrix (clj-stad.core/graph-distance-matrix @state)
             ; prev-score (stad-score hiD-dist-matrix @state-matrix)
             dE (- @state-score proposed-score)]
 
-        ; (stad/printfv "run-sa: iteration %d%n" step)
+        ; (clj-stad.core/printfv "run-sa: iteration %d%n" step)
         (println step "proposed score:" proposed-score)
         (swap! history-x conj proposed-nr-edges)
         (swap! history-y conj proposed-score)
@@ -157,9 +144,9 @@
     [@state @nr-edges @history-x @history-y]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; (def hiD-dist-matrix stad/hiD-dist-matrix)
-; (def sorted-non-mst-edges-with-weight stad/sorted-non-mst-edges-with-weight)
-; (def mst stad/mst)
+; (def hiD-dist-matrix clj-stad.core/hiD-dist-matrix)
+; (def sorted-non-mst-edges-with-weight clj-stad.core/sorted-non-mst-edges-with-weight)
+; (def mst clj-stad.core/mst)
 ; (def nr-iterations 20)
 ; (def temperature-seq (make-temperature-seq 1.5 0.1 nr-interations))
 ; (def random-factor-seq (make-random-factor-seq 0 10000 nr-iterations))
