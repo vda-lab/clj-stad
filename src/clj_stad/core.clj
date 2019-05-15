@@ -3,77 +3,100 @@
 (load-file "src/clj_stad/functions.clj")
 (load-file "src/clj_stad/simanneal.clj")
 
-(def raw-data (with-open [reader (io/reader "data/five_circles.csv")]
+;;;;;;;;;;;; Arguments
+(def data-file "data/five_circles.csv")
+(def sample-size 100)
+(def nr-epochs 30)
+(def max-temp 1)
+(def min-temp 0.01)
+(def min-rf 0)
+(def max-rf 10000)
+;;;;;;;;;;;;;
+
+(def raw-data (with-open [reader (io/reader data-file)]
                 (doall
                  (csv-data->maps (csv/read-csv reader)))))
 (def data
   (->> raw-data
        (shuffle)
-       (take 100)
+       (take sample-size)
        (map #(assoc % :x (Integer/parseInt (:x %))))
        (map #(assoc % :y (Integer/parseInt (:y %))))
        (map #(assoc % :hue (Integer/parseInt (:hue %))))
        (map #(assoc % :id (Integer/parseInt (:id %))))))
 (def values (map #(vector (:x %) (:y %)) data))
-(def hiD-dist-matrix
-  (euclidean-distance-matrix values))
-(def full-graph
+(def hiD-dist-matrix (euclidean-distance-matrix values))
+
+(defn full-graph [hiD-dist-matrix]
   (->> hiD-dist-matrix
        (get-all-edges) ; all-edges
        (apply lg/weighted-graph)))
-(def weighted-mst
-  (la/prim-mst full-graph))
+(defn weighted-mst [hiD-dist-matrix]
+  (la/prim-mst (full-graph hiD-dist-matrix)))
 
-(def mst (apply lg/graph (lg/edges weighted-mst)))
-(def full-graph-unique-edges
-  (->> (lg/edges full-graph)
+(defn mst [hiD-dist-matrix]
+  (apply lg/graph (lg/edges (weighted-mst hiD-dist-matrix))))
+
+(defn full-graph-unique-edges [hiD-dist-matrix]
+  (->> (lg/edges (full-graph hiD-dist-matrix))
        (map sort)     ; ((0 7) (0 20) (0 27) (0 1) (0 24) ...
        (set)))
 
-(def mst-unique-edges
-  (->> (lg/edges mst)
+(defn mst-unique-edges [hiD-dist-matrix]
+  (->> (lg/edges (mst hiD-dist-matrix))
        (map sort)     ; ((0 7) (0 20) (0 27) (0 1) (0 24) ...
        (set)))
 
-(def sorted-non-mst-edges-with-weight
-  (->> (set/difference full-graph-unique-edges mst-unique-edges) ; non-mst-edges
+(defn sorted-non-mst-edges-with-weight [hiD-dist-matrix]
+  (->> (set/difference (full-graph-unique-edges hiD-dist-matrix) (mst-unique-edges hiD-dist-matrix)) ; non-mst-edges
        (map #(conj (vec %) (cm/mget hiD-dist-matrix (first %) (second %)))) ; non-mst-edges-with-weight
        (sort-by #(nth % 2))))
 
-(def nr-iterations 50)
-(def temperature-seq (simanneal.anneal/make-temperature-seq 1 0.01 nr-iterations))
-; (def temperature-seq (simanneal.anneal/make-temperature-seq 1.5 0.1 nr-iterations))
-(def random-factor-seq (simanneal.anneal/make-random-factor-seq 0 10000 nr-iterations))
+(defn temperature-seq [min-temp max-temp nr-epochs]
+  (simanneal.anneal/make-temperature-seq max-temp min-temp nr-epochs))
+; (def temperature-seq (simanneal.anneal/make-temperature-seq 1.5 0.1 nr-epochs))
+(defn random-factor-seq [min-rf max-rf nr-epochs]
+  (simanneal.anneal/make-random-factor-seq min-rf max-rf nr-epochs))
 
-
-(def result
+(defn result [hiD-dist-matrix]
   (simanneal.anneal/run-sa
           hiD-dist-matrix
-          sorted-non-mst-edges-with-weight ; the edges to pick from
-          mst
-          temperature-seq
-          random-factor-seq))
+          (sorted-non-mst-edges-with-weight hiD-dist-matrix) ; the edges to pick from
+          (mst hiD-dist-matrix)
+          (temperature-seq min-temp max-temp nr-epochs)
+          (random-factor-seq min-rf max-rf nr-epochs)))
 
-(proto-repl-charts.charts/custom-chart
-   "Evolution of objective function value"
-   {:data {:x "x"
-           :columns [(flatten ["x" (nth result 2)])
-                     (flatten ["y" (nth result 3)])]
-           :type "scatter"}})
+(defn optimal-nr-edges [hiD-dist-matrix]
+  (second (result hiD-dist-matrix)))
 
-(proto-repl-charts.charts/line-chart
-  "history-x"
-  {"x" (nth result 2)})
+(defn optimal-graph [hiD-dist-matrix]
+  (first (result hiD-dist-matrix)))
 
-(proto-repl-charts.charts/line-chart
-  "history-y"
-  {"y" (nth result 3)})
 
-(def new-graph
-  (->> sorted-non-mst-edges-with-weight
-       (take (second result))
-       (add-multiple-edges mst)))
+(defn draw-xy-plot [hiD-dist-matrix]
+  (let [r (result hiD-dist-matrix)]
+    (proto-repl-charts.charts/custom-chart
+       "Evolution of objective function value"
+       {:data {:x "x"
+               :y "y"
+               :columns [(flatten ["x" (nth r 2)])
+                         (flatten ["y" (nth r 3)])]
+               :type "scatter"}})))
 
-(proto-repl-charts.graph/graph
-  "New graph"
-  new-graph)
+(defn draw-x-plot [hiD-dist-matrix]
+  (proto-repl-charts.charts/line-chart
+    "history-x"
+    {"x" (nth (result hiD-dist-matrix) 2)}))
+
+(defn draw-y-plot [hiD-dist-matrix]
+  (proto-repl-charts.charts/line-chart
+    "history-y"
+    {"y" (nth (result hiD-dist-matrix) 3)}))
+
+(defn draw-optimal-graph [hiD-dist-matrix]
+  (proto-repl-charts.graph/graph
+    "sTAD network"
+    (optimal-graph hiD-dist-matrix)))
+
+(draw-xy-plot hiD-dist-matrix)
+(draw-optimal-graph hiD-dist-matrix)
