@@ -55,8 +55,8 @@
   (let [nr-edges-to-add-remove-fn (nr-edges-to-add-remove-fn rf)
         proposed-nr-edges (+ prev-nr-edges nr-edges-to-add-remove-fn)]
     (cond
-      (< proposed-nr-edges 0)     (* -1 (/ proposed-nr-edges 2))
-      (> proposed-nr-edges 10000) (- 10000 (/ proposed-nr-edges 2))
+      (< proposed-nr-edges 0)     (int (* -1 (/ proposed-nr-edges 2)))
+      (> proposed-nr-edges 10000) (int (- 10000 (/ proposed-nr-edges 2)))
       :else proposed-nr-edges)))
     ;   )
     ; (if (< proposed-nr-edges 0)
@@ -83,6 +83,10 @@
 (defn stad-score [hiD-dist-matrix graph-dist-matrix]
   (is/correlation (flatten hiD-dist-matrix) (flatten graph-dist-matrix)))
 
+(defn acceptance-probability
+  [dE temp]
+  (Math/exp (/ (* -1 dE) temp)))
+
 (defn run-sa
   "Run simulated annealing.
   State is a GRAPH, _not_ a distance matrix.
@@ -101,10 +105,11 @@
    random-factor-seq]
 
   (let [state (atom mst)
+        state-matrix (atom (stad/graph-distance-matrix mst))
+        state-score (atom (stad-score hiD-dist-matrix @state-matrix))
         nr-edges (atom 0)
         history-x (atom [])
-        history-y (atom [])
-        bar (pr/progress-bar (count temperature-seq))]
+        history-y (atom [])]
     (doseq [step (range 0 (count temperature-seq))]
       (let [temp (nth temperature-seq step)
             rf (nth random-factor-seq step)
@@ -112,25 +117,43 @@
             proposed-graph (proposed-graph-fn mst proposed-nr-edges sorted-non-mst-edges-with-weight)
             proposed-graph-distance-matrix (stad/graph-distance-matrix proposed-graph)
             proposed-score (stad-score hiD-dist-matrix proposed-graph-distance-matrix)
-            prev-graph-distance-matrix (stad/graph-distance-matrix @state)
-            prev-score (stad-score hiD-dist-matrix prev-graph-distance-matrix)
-            dE (- proposed-score prev-score)]
+            ; prev-graph-distance-matrix (stad/graph-distance-matrix @state)
+            ; prev-score (stad-score hiD-dist-matrix @state-matrix)
+            dE (- @state-score proposed-score)]
 
-        (pr/print bar)
-        (pr/tick bar)
         ; (stad/printfv "run-sa: iteration %d%n" step)
+        (println step "proposed score:" proposed-score)
         (swap! history-x conj proposed-nr-edges)
         (swap! history-y conj proposed-score)
-        (if (or
-              (> proposed-score prev-score)
-              (> (Math/exp (/ (* -1 dE) temp)) (rand)))
-             ; (> dE 0)
-             ; (> (Math/exp (/ dE temp)) (rand)))
-             ; (< dE 0)
-             ; (> (Math/exp (/ (* -1 dE) temp)) (rand)))
-          (reset! state proposed-graph)
-          (reset! nr-edges proposed-nr-edges))))
-    (pr/print (pr/done bar))
+        (if (> proposed-score @state-score)
+          (do
+            (println "Case A: better score:" @state-score proposed-score)
+            (reset! state proposed-graph)
+            (reset! state-matrix proposed-graph-distance-matrix)
+            (reset! state-score proposed-score)
+            (reset! nr-edges proposed-nr-edges))
+          (if (> (acceptance-probability dE temp) (rand))
+            (do
+              (println "Case B: up to chance:" dE temp (acceptance-probability dE temp))
+              (reset! state proposed-graph)
+              (reset! state-matrix proposed-graph-distance-matrix)
+              (reset! state-score proposed-score)
+              (reset! nr-edges proposed-nr-edges))))))
+
+
+        ; (if (or
+        ;       (> proposed-score @state-score)
+        ;       (> (Math/exp (/ (* -1 dE) temp)) (rand)))
+        ;      ; (> dE 0)
+        ;      ; (> (Math/exp (/ dE temp)) (rand)))
+        ;      ; (< dE 0)
+        ;      ; (> (Math/exp (/ (* -1 dE) temp)) (rand)))
+        ;   (do
+        ;     (println proposed-nr-edges)
+        ;     (reset! state proposed-graph)
+        ;     (reset! state-matrix proposed-graph-distance-matrix)
+        ;     (reset! state-score proposed-score)
+        ;     (reset! nr-edges proposed-nr-edges)))))
     [@state @nr-edges @history-x @history-y]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
