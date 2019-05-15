@@ -58,15 +58,6 @@
   [initial-graph nr-edges list-of-all-edges]
   (add-multiple-edges initial-graph (take nr-edges list-of-all-edges)))
 
-; (defn score
-;   "weight numbers by order.
-;   Higher numbers penalized more at the end of the vector =
-;   effectively a reverse sort"
-;   [state]
-;   (let [indexes (range 1 (+ 1 (count state)))
-;         weighted-scores (map * indexes state)]
-;     (reduce + weighted-scores)))
-
 (defn stad-score [hiD-dist-matrix graph-dist-matrix]
   (is/correlation (flatten hiD-dist-matrix) (flatten graph-dist-matrix)))
 
@@ -86,8 +77,6 @@
   [hiD-dist-matrix
    sorted-non-mst-edges-with-weight ; the edges to pick from
    mst
-   ;move-fn
-   ;score-fn
    temperature-seq
    random-factor-seq]
 
@@ -142,29 +131,3 @@
         ;     (reset! state-score proposed-score)
         ;     (reset! nr-edges proposed-nr-edges)))))
     [@state @nr-edges @history-x @history-y]))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; (def hiD-dist-matrix clj-stad.core/hiD-dist-matrix)
-; (def sorted-non-mst-edges-with-weight clj-stad.core/sorted-non-mst-edges-with-weight)
-; (def mst clj-stad.core/mst)
-; (def nr-iterations 20)
-; (def temperature-seq (make-temperature-seq 1.5 0.1 nr-interations))
-; (def random-factor-seq (make-random-factor-seq 0 10000 nr-iterations))
-;
-; (def result
-;   (run-sa hiD-dist-matrix
-;           sorted-non-mst-edges-with-weight ; the edges to pick from
-;           mst
-;           temperature-seq
-;           random-factor-seq))
-
-
-;
-;
-;
-; (def nr-iterations 20)
-; (run-sa (into [] (range 10))
-;         move
-;         score
-;         (make-temperature-seq 1.5 0.1 nr-iterations)
-;         (make-random-factor-seq 20 10000 nr-iterations))
