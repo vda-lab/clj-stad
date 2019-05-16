@@ -45,13 +45,6 @@
       (< proposed-nr-edges 0)     (int (* -1 (/ proposed-nr-edges 2)))
       (> proposed-nr-edges 10000) (int (- 10000 (/ proposed-nr-edges 2)))
       :else proposed-nr-edges)))
-    ;   )
-    ; (if (< proposed-nr-edges 0)
-    ;   0
-    ;   (if (> proposed-nr-edges 10000)
-    ;     10000
-    ;     proposed-nr-edges))))
-
 
 (defn proposed-graph-fn
   "Creates new state"
@@ -93,41 +86,34 @@
             proposed-graph (proposed-graph-fn mst proposed-nr-edges sorted-non-mst-edges-with-weight)
             proposed-graph-distance-matrix (clj-stad.core/graph-distance-matrix proposed-graph)
             proposed-score (stad-score hiD-dist-matrix proposed-graph-distance-matrix)
-            ; prev-graph-distance-matrix (clj-stad.core/graph-distance-matrix @state)
-            ; prev-score (stad-score hiD-dist-matrix @state-matrix)
             dE (- @state-score proposed-score)]
 
-        ; (clj-stad.core/printfv "run-sa: iteration %d%n" step)
-        (println step "proposed score:" proposed-score)
+        ; (println step "proposed score:" proposed-score)
         (swap! history-x conj proposed-nr-edges)
         (swap! history-y conj proposed-score)
-        (if (> proposed-score @state-score)
-          (do
-            (println "Case A: better score:" @state-score proposed-score)
-            (reset! state proposed-graph)
-            (reset! state-matrix proposed-graph-distance-matrix)
-            (reset! state-score proposed-score)
-            (reset! nr-edges proposed-nr-edges))
-          (if (> (acceptance-probability dE temp) (rand))
-            (do
-              (println "Case B: up to chance:" dE temp (acceptance-probability dE temp))
-              (reset! state proposed-graph)
-              (reset! state-matrix proposed-graph-distance-matrix)
-              (reset! state-score proposed-score)
-              (reset! nr-edges proposed-nr-edges))))))
-
-
-        ; (if (or
-        ;       (> proposed-score @state-score)
-        ;       (> (Math/exp (/ (* -1 dE) temp)) (rand)))
-        ;      ; (> dE 0)
-        ;      ; (> (Math/exp (/ dE temp)) (rand)))
-        ;      ; (< dE 0)
-        ;      ; (> (Math/exp (/ (* -1 dE) temp)) (rand)))
+        ; (if (> proposed-score @state-score)
         ;   (do
-        ;     (println proposed-nr-edges)
+        ;     (println "Case A: better score:" @state-score proposed-score)
         ;     (reset! state proposed-graph)
         ;     (reset! state-matrix proposed-graph-distance-matrix)
         ;     (reset! state-score proposed-score)
-        ;     (reset! nr-edges proposed-nr-edges)))))
+        ;     (reset! nr-edges proposed-nr-edges))
+        ;   (if (> (acceptance-probability dE temp) (rand))
+        ;     (do
+        ;       (println "Case B: up to chance:" dE temp (acceptance-probability dE temp))
+        ;       (reset! state proposed-graph)
+        ;       (reset! state-matrix proposed-graph-distance-matrix)
+        ;       (reset! state-score proposed-score)
+        ;       (reset! nr-edges proposed-nr-edges))))))
+
+
+        (if (or
+              (> proposed-score @state-score)
+              (> (acceptance-probability dE temp) (rand)))
+          (do
+            ; (println proposed-nr-edges)
+            (reset! state proposed-graph)
+            (reset! state-matrix proposed-graph-distance-matrix)
+            (reset! state-score proposed-score)
+            (reset! nr-edges proposed-nr-edges)))))
     [@state @nr-edges @history-x @history-y]))
